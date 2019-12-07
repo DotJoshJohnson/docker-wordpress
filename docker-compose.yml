@@ -1,0 +1,53 @@
+version: "3.5"
+
+networks:
+  wp:
+    name: "wp"
+
+services:
+
+  wp-mysql:
+    image: "mysql:5.7"
+    container_name: "wp-mysql"
+    networks:
+      - "wp"
+    volumes:
+      - "./wp-mysql/var/lib/mysql:/var/lib/mysql"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "wordpress"
+      MYSQL_USER: "wordpress"
+      MYSQL_PASSWORD: "${DB_USER_PASSWORD}"
+
+  wp-wordpress:
+    depends_on:
+      - "wp-mysql"
+    image: "wordpress:latest"
+    container_name: "wp-wordpress"
+    networks:
+      - "wp"
+    volumes:
+      - "./wp-wordpress/var/www/html:/var/www/html"
+    environment:
+      WORDPRESS_DB_HOST: "wp-mysql:3306"
+      WORDPRESS_DB_USER: "wordpress"
+      WORDPRESS_DB_PASSWORD: "${DB_USER_PASSWORD}"
+
+  wp-letsencrypt:
+    depends_on:
+      - "wp-wordpress"
+    image: "linuxserver/letsencrypt:latest"
+    container_name: "wp-letsencrypt"
+    cap_add:
+      - "NET_ADMIN"
+    networks:
+      - "wp"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./wp-letsencrypt/config:/config"
+    environment:
+      EMAIL: "${SSL_EMAIL}"
+      URL: "${SSL_DOMAIN}"
+      VALIDATION: "http"
